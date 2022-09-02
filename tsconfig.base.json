@@ -29,6 +29,7 @@
         "packages/query-sync-storage-persister/src"
       ],
       "@tanstack/react-query": ["packages/react-query/src"],
+      "@tanstack/solid-query": ["packages/solid-query/src"],
       "@tanstack/react-query-devtools": ["packages/react-query-devtools/src"],
       "@tanstack/react-query-persist-client": [
         "packages/react-query-persist-client/src"

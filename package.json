@@ -33,6 +33,7 @@
     "./packages/query-broadcast-client-experimental",
     "./packages/query-sync-storage-persister",
     "./packages/react-query",
+    "./packages/solid-query",
     "./packages/react-query-devtools",
     "./packages/react-query-persist-client",
     "./examples/react/auto-refetching",
