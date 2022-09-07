@@ -1,5 +1,9 @@
 // CONTEXT
 
+// TODO(lukemurray): we might be able to rewrite this using solid context
+
+import { createContext, createSignal, useContext } from "solid-js"
+
 interface QueryErrorResetBoundaryValue {
   clearReset: () => void
   isReset: () => boolean
@@ -21,12 +25,12 @@ function createValue(): QueryErrorResetBoundaryValue {
   }
 }
 
-const QueryErrorResetBoundaryContext = React.createContext(createValue())
+const QueryErrorResetBoundaryContext = createContext(createValue())
 
 // HOOK
 
 export const useQueryErrorResetBoundary = () =>
-  React.useContext(QueryErrorResetBoundaryContext)
+  useContext(QueryErrorResetBoundaryContext)
 
 // COMPONENT
 
@@ -39,9 +43,9 @@ export interface QueryErrorResetBoundaryProps {
 export const QueryErrorResetBoundary = ({
   children,
 }: QueryErrorResetBoundaryProps) => {
-  const [value] = React.useState(() => createValue())
+  const [value] = createSignal(createValue())
   return (
-    <QueryErrorResetBoundaryContext.Provider value={value}>
+    <QueryErrorResetBoundaryContext.Provider value={value()}>
       {typeof children === 'function'
         ? (children as Function)(value)
         : children}

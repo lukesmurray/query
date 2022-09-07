@@ -3,9 +3,8 @@ import {
   Context as SolidContext,
   createComputed,
   createContext,
-  onCleanup,
-  onMount,
-  ParentProps,
+  mergeProps,
+  onCleanup, ParentProps,
   useContext
 } from 'solid-js'
 import { ContextOptions } from './types'
@@ -71,24 +70,19 @@ export type QueryClientProviderProps =
   | QueryClientProviderPropsWithContext
   | QueryClientProviderPropsWithContextSharing
 
-export const QueryClientProvider = ({
-  client,
-  children,
-  context,
-  contextSharing = false,
-}: QueryClientProviderProps) => {
-  onMount(() => client.mount())
-  onCleanup(() => client.unmount())
+export const QueryClientProvider = (props: QueryClientProviderProps) => {
+  const mergedProps = mergeProps({contextSharing: false}, props)
+
   createComputed(() => {
-    client.mount()
-    onCleanup(() => client.unmount())
+    mergedProps.client.mount()
+    onCleanup(() => mergedProps.client.unmount())
   })
 
-  const Context = getQueryClientContext(context, contextSharing)
+  const Context = getQueryClientContext(mergedProps.context, mergedProps.contextSharing!)
 
   return (
-    <QueryClientSharingContext.Provider value={!context && contextSharing}>
-      <Context.Provider value={client}>{children}</Context.Provider>
+    <QueryClientSharingContext.Provider value={!mergedProps.context && mergedProps.contextSharing}>
+      <Context.Provider value={mergedProps.client}>{mergedProps.children}</Context.Provider>
     </QueryClientSharingContext.Provider>
   )
 }

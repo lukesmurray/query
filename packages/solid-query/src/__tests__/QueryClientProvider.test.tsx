@@ -1,14 +1,14 @@
-import { renderToString } from 'react-dom/server'
-import { render, waitFor } from 'solid-testing-library'
+import { Context, createContext, useContext } from 'solid-js';
+import { render, screen, waitFor } from 'solid-testing-library';
 
 import {
   QueryCache,
   QueryClient,
   QueryClientProvider,
   useQuery,
-  useQueryClient,
-} from '..'
-import { createQueryClient, queryKey, sleep } from '../../../../tests/utils'
+  useQueryClient
+} from '..';
+import { createQueryClient, queryKey, sleep } from '../../../../tests/utils';
 
 describe('QueryClientProvider', () => {
   test('sets a specific cache for all queries to use', async () => {
@@ -30,13 +30,13 @@ describe('QueryClientProvider', () => {
       )
     }
 
-    const rendered = render(
-      <QueryClientProvider client={queryClient}>
+    render(
+      () => <QueryClientProvider client={queryClient}>
         <Page />
       </QueryClientProvider>,
     )
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => screen.getByText('test'))
 
     expect(queryCache.find(key)).toBeDefined()
   })
@@ -76,7 +76,7 @@ describe('QueryClientProvider', () => {
       )
     }
 
-    const rendered = render(
+    render(() =>
       <>
         <QueryClientProvider client={queryClient1}>
           <Page1 />
@@ -87,8 +87,8 @@ describe('QueryClientProvider', () => {
       </>,
     )
 
-    await waitFor(() => rendered.getByText('test1'))
-    await waitFor(() => rendered.getByText('test2'))
+    await waitFor(() => screen.getByText('test1'))
+    await waitFor(() => screen.getByText('test2'))
 
     expect(queryCache1.find(key1)).toBeDefined()
     expect(queryCache1.find(key2)).not.toBeDefined()
@@ -122,13 +122,13 @@ describe('QueryClientProvider', () => {
       )
     }
 
-    const rendered = render(
+    render(() =>
       <QueryClientProvider client={queryClient}>
         <Page />
       </QueryClientProvider>,
     )
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => screen.getByText('test'))
 
     expect(queryCache.find(key)).toBeDefined()
     expect(queryCache.find(key)?.options.cacheTime).toBe(Infinity)
@@ -138,10 +138,10 @@ describe('QueryClientProvider', () => {
     it('uses the correct context', async () => {
       const key = queryKey()
 
-      const contextOuter = React.createContext<QueryClient | undefined>(
+      const contextOuter = createContext<QueryClient | undefined>(
         undefined,
       )
-      const contextInner = React.createContext<QueryClient | undefined>(
+      const contextInner = createContext<QueryClient | undefined>(
         undefined,
       )
 
@@ -180,7 +180,7 @@ describe('QueryClientProvider', () => {
       // contextSharing should be ignored when passing a custom context.
       const contextSharing = true
 
-      const rendered = render(
+      render(() =>
         <QueryClientProvider client={queryClientOuter} context={contextOuter}>
           <QueryClientProvider client={queryClientInner} context={contextInner}>
             <QueryClientProvider
@@ -194,7 +194,7 @@ describe('QueryClientProvider', () => {
       )
 
       await waitFor(() =>
-        rendered.getByText('testOuter testInner testInnerInner'),
+        screen.getByText('testOuter testInner testInnerInner'),
       )
     })
   })
@@ -210,7 +210,7 @@ describe('QueryClientProvider', () => {
         return null
       }
 
-      expect(() => render(<Page />)).toThrow(
+      expect(() => render(() => <Page />)).toThrow(
         'No QueryClient set, use QueryClientProvider to set one',
       )
 
@@ -226,15 +226,15 @@ describe('QueryClientProvider', () => {
 
       function Page() {
         queryClientFromHook = useQueryClient()
-        queryClientFromWindow = React.useContext(
-          window.ReactQueryClientContext as React.Context<
+        queryClientFromWindow = useContext(
+          window.SolidQueryClientContext as Context<
             QueryClient | undefined
           >,
         )
         return null
       }
 
-      render(
+      render(() =>
         <QueryClientProvider client={queryClient} contextSharing={true}>
           <Page />
         </QueryClientProvider>,
@@ -244,31 +244,32 @@ describe('QueryClientProvider', () => {
       expect(queryClientFromWindow).toEqual(queryClient)
     })
 
-    test('should not use window to get the context when contextSharing is true and window does not exist', () => {
-      const queryCache = new QueryCache()
-      const queryClient = createQueryClient({ queryCache })
+    // TODO(lukemurray): implement server side tests
+    // test('should not use window to get the context when contextSharing is true and window does not exist', () => {
+    //   const queryCache = new QueryCache()
+    //   const queryClient = createQueryClient({ queryCache })
 
-      // Mock a non web browser environment
-      const windowSpy = jest
-        .spyOn(window, 'window', 'get')
-        .mockImplementation(undefined)
+    //   // Mock a non web browser environment
+    //   const windowSpy = jest
+    //     .spyOn(window, 'window', 'get')
+    //     .mockImplementation(undefined)
 
-      let queryClientFromHook: QueryClient | undefined
+    //   let queryClientFromHook: QueryClient | undefined
 
-      function Page() {
-        queryClientFromHook = useQueryClient()
-        return null
-      }
+    //   function Page() {
+    //     queryClientFromHook = useQueryClient()
+    //     return null
+    //   }
 
-      renderToString(
-        <QueryClientProvider client={queryClient} contextSharing={true}>
-          <Page />
-        </QueryClientProvider>,
-      )
+    //   renderToString(
+    //     <QueryClientProvider client={queryClient} contextSharing={true}>
+    //       <Page />
+    //     </QueryClientProvider>,
+    //   )
 
-      expect(queryClientFromHook).toEqual(queryClient)
+    //   expect(queryClientFromHook).toEqual(queryClient)
 
-      windowSpy.mockRestore()
-    })
+    //   windowSpy.mockRestore()
+    // })
   })
 })
