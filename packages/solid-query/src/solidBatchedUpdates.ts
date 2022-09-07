@@ -1,3 +1,3 @@
-import { batch } from "solid-js";
+import { batch } from 'solid-js'
 
-export const unstable_batchedUpdates = batch;
+export const unstable_batchedUpdates = batch
