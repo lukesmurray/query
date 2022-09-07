@@ -21,6 +21,9 @@ import { UseBaseQueryOptions } from './types'
  *    - We use this resource to trigger suspense
  *  - When the store is updated, we refetch the resource
  *  - We return a proxy object of the result, which maps the 'data' property to the resource
+ *
+ *  Differences
+ *   - You cannot access the `data` property outside of a reactive scope.
  */
 
 export function useBaseQuery<
