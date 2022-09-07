@@ -37,7 +37,9 @@ export interface QueryErrorResetBoundaryProps {
   children: ((value: QueryErrorResetBoundaryValue) => JSX.Element) | JSX.Element
 }
 
-export const QueryErrorResetBoundary = (props: QueryErrorResetBoundaryProps) => {
+export const QueryErrorResetBoundary = (
+  props: QueryErrorResetBoundaryProps,
+) => {
   const value = createValue()
   return (
     <QueryErrorResetBoundaryContext.Provider value={value}>
