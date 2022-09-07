@@ -1,14 +1,14 @@
-import { Context, createContext, useContext } from 'solid-js';
-import { render, screen, waitFor } from 'solid-testing-library';
+import { Context, createContext, useContext } from 'solid-js'
+import { render, screen, waitFor } from 'solid-testing-library'
 
 import {
   QueryCache,
   QueryClient,
   QueryClientProvider,
   useQuery,
-  useQueryClient
-} from '..';
-import { createQueryClient, queryKey, sleep } from '../../../../tests/utils';
+  useQueryClient,
+} from '..'
+import { createQueryClient, queryKey, sleep } from '../../../../tests/utils'
 
 describe('QueryClientProvider', () => {
   test('sets a specific cache for all queries to use', async () => {
@@ -18,25 +18,27 @@ describe('QueryClientProvider', () => {
     const queryClient = createQueryClient({ queryCache })
 
     function Page() {
-      const { data } = useQuery(key, async () => {
+      const query = useQuery(key, async () => {
         await sleep(10)
         return 'test'
       })
 
       return (
         <div>
-          <h1>{data}</h1>
+          <h1>{query.data}</h1>
         </div>
       )
     }
 
-    render(
-      () => <QueryClientProvider client={queryClient}>
+    render(() => (
+      <QueryClientProvider client={queryClient}>
         <Page />
-      </QueryClientProvider>,
-    )
+      </QueryClientProvider>
+    ))
 
-    await waitFor(() => screen.getByText('test'))
+    await waitFor(() => {
+      return screen.getByText('test')
+    })
 
     expect(queryCache.find(key)).toBeDefined()
   })
@@ -52,31 +54,31 @@ describe('QueryClientProvider', () => {
     const queryClient2 = createQueryClient({ queryCache: queryCache2 })
 
     function Page1() {
-      const { data } = useQuery(key1, async () => {
+      const query = useQuery(key1, async () => {
         await sleep(10)
         return 'test1'
       })
 
       return (
         <div>
-          <h1>{data}</h1>
+          <h1>{query.data}</h1>
         </div>
       )
     }
     function Page2() {
-      const { data } = useQuery(key2, async () => {
+      const query = useQuery(key2, async () => {
         await sleep(10)
         return 'test2'
       })
 
       return (
         <div>
-          <h1>{data}</h1>
+          <h1>{query.data}</h1>
         </div>
       )
     }
 
-    render(() =>
+    render(() => (
       <>
         <QueryClientProvider client={queryClient1}>
           <Page1 />
@@ -84,8 +86,8 @@ describe('QueryClientProvider', () => {
         <QueryClientProvider client={queryClient2}>
           <Page2 />
         </QueryClientProvider>
-      </>,
-    )
+      </>
+    ))
 
     await waitFor(() => screen.getByText('test1'))
     await waitFor(() => screen.getByText('test2'))
@@ -110,23 +112,23 @@ describe('QueryClientProvider', () => {
     })
 
     function Page() {
-      const { data } = useQuery(key, async () => {
+      const query = useQuery(key, async () => {
         await sleep(10)
         return 'test'
       })
 
       return (
         <div>
-          <h1>{data}</h1>
+          <h1>{query.data}</h1>
         </div>
       )
     }
 
-    render(() =>
+    render(() => (
       <QueryClientProvider client={queryClient}>
         <Page />
-      </QueryClientProvider>,
-    )
+      </QueryClientProvider>
+    ))
 
     await waitFor(() => screen.getByText('test'))
 
@@ -138,12 +140,8 @@ describe('QueryClientProvider', () => {
     it('uses the correct context', async () => {
       const key = queryKey()
 
-      const contextOuter = createContext<QueryClient | undefined>(
-        undefined,
-      )
-      const contextInner = createContext<QueryClient | undefined>(
-        undefined,
-      )
+      const contextOuter = createContext<QueryClient | undefined>(undefined)
+      const contextInner = createContext<QueryClient | undefined>(undefined)
 
       const queryCacheOuter = new QueryCache()
       const queryClientOuter = new QueryClient({ queryCache: queryCacheOuter })
@@ -157,21 +155,18 @@ describe('QueryClientProvider', () => {
       })
 
       function Page() {
-        const { data: testOuter } = useQuery(key, async () => 'testOuter', {
+        const queryOuter = useQuery(key, async () => 'testOuter', {
           context: contextOuter,
         })
-        const { data: testInner } = useQuery(key, async () => 'testInner', {
+        const queryInner = useQuery(key, async () => 'testInner', {
           context: contextInner,
         })
-        const { data: testInnerInner } = useQuery(
-          key,
-          async () => 'testInnerInner',
-        )
+        const queryInnerInner = useQuery(key, async () => 'testInnerInner')
 
         return (
           <div>
             <h1>
-              {testOuter} {testInner} {testInnerInner}
+              {queryOuter.data} {queryInner.data} {queryInnerInner.data}
             </h1>
           </div>
         )
@@ -180,7 +175,7 @@ describe('QueryClientProvider', () => {
       // contextSharing should be ignored when passing a custom context.
       const contextSharing = true
 
-      render(() =>
+      render(() => (
         <QueryClientProvider client={queryClientOuter} context={contextOuter}>
           <QueryClientProvider client={queryClientInner} context={contextInner}>
             <QueryClientProvider
@@ -190,8 +185,8 @@ describe('QueryClientProvider', () => {
               <Page />
             </QueryClientProvider>
           </QueryClientProvider>
-        </QueryClientProvider>,
-      )
+        </QueryClientProvider>
+      ))
 
       await waitFor(() =>
         screen.getByText('testOuter testInner testInnerInner'),
@@ -227,18 +222,16 @@ describe('QueryClientProvider', () => {
       function Page() {
         queryClientFromHook = useQueryClient()
         queryClientFromWindow = useContext(
-          window.SolidQueryClientContext as Context<
-            QueryClient | undefined
-          >,
+          window.SolidQueryClientContext as Context<QueryClient | undefined>,
         )
         return null
       }
 
-      render(() =>
+      render(() => (
         <QueryClientProvider client={queryClient} contextSharing={true}>
           <Page />
-        </QueryClientProvider>,
-      )
+        </QueryClientProvider>
+      ))
 
       expect(queryClientFromHook).toEqual(queryClient)
       expect(queryClientFromWindow).toEqual(queryClient)

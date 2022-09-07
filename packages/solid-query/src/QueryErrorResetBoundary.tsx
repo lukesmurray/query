@@ -1,7 +1,7 @@
 // CONTEXT
 
-import { createContext, useContext } from 'solid-js';
-import type { JSX } from "solid-js/types/jsx";
+import { createContext, useContext } from 'solid-js'
+import type { JSX } from 'solid-js/types/jsx'
 
 interface QueryErrorResetBoundaryValue {
   clearReset: () => void
@@ -34,16 +34,13 @@ export const useQueryErrorResetBoundary = () =>
 // COMPONENT
 
 export interface QueryErrorResetBoundaryProps {
-  children:
-    | ((value: QueryErrorResetBoundaryValue) => JSX.Element)
-    | JSX.Element;
+  children: ((value: QueryErrorResetBoundaryValue) => JSX.Element) | JSX.Element
 }
-
 
 export const QueryErrorResetBoundary = ({
   children,
 }: QueryErrorResetBoundaryProps) => {
-  const value = createValue();
+  const value = createValue()
   return (
     <QueryErrorResetBoundaryContext.Provider value={value}>
       {typeof children === 'function'

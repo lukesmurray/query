@@ -1,12 +1,12 @@
 import * as React from 'react'
 import { useSyncExternalStore } from 'use-sync-external-store/shim'
 
-import { QueryKey, notifyManager, QueryObserver } from '@tanstack/query-core'
-import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
+import { notifyManager, QueryKey, QueryObserver } from '@tanstack/query-core'
+import { useIsRestoring } from './isRestoring'
 import { useQueryClient } from './QueryClientProvider'
+import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
 import { UseBaseQueryOptions } from './types'
 import { shouldThrowError } from './utils'
-import { useIsRestoring } from './isRestoring'
 
 export function useBaseQuery<
   TQueryFnData,
