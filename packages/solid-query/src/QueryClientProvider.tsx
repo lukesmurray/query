@@ -1,45 +1,52 @@
 import { QueryClient } from '@tanstack/query-core'
+import {
+  Context as SolidContext,
+  createComputed,
+  createContext,
+  onCleanup,
+  onMount,
+  ParentProps,
+  useContext
+} from 'solid-js'
 import { ContextOptions } from './types'
 
 declare global {
   interface Window {
-    ReactQueryClientContext?: React.Context<QueryClient | undefined>
+    SolidQueryClientContext?: SolidContext<QueryClient | undefined>
   }
 }
 
-export const defaultContext = React.createContext<QueryClient | undefined>(
-  undefined,
-)
-const QueryClientSharingContext = React.createContext<boolean>(false)
+export const defaultContext = createContext<QueryClient | undefined>(undefined)
+const QueryClientSharingContext = createContext<boolean>(false)
 
 // If we are given a context, we will use it.
 // Otherwise, if contextSharing is on, we share the first and at least one
 // instance of the context across the window
-// to ensure that if React Query is used across
+// to ensure that if Solid Query is used across
 // different bundles or microfrontends they will
 // all use the same **instance** of context, regardless
 // of module scoping.
 function getQueryClientContext(
-  context: React.Context<QueryClient | undefined> | undefined,
+  context: SolidContext<QueryClient | undefined> | undefined,
   contextSharing: boolean,
 ) {
   if (context) {
     return context
   }
   if (contextSharing && typeof window !== 'undefined') {
-    if (!window.ReactQueryClientContext) {
-      window.ReactQueryClientContext = defaultContext
+    if (!window.SolidQueryClientContext) {
+      window.SolidQueryClientContext = defaultContext
     }
 
-    return window.ReactQueryClientContext
+    return window.SolidQueryClientContext
   }
 
   return defaultContext
 }
 
 export const useQueryClient = ({ context }: ContextOptions = {}) => {
-  const queryClient = React.useContext(
-    getQueryClientContext(context, React.useContext(QueryClientSharingContext)),
+  const queryClient = useContext(
+    getQueryClientContext(context, useContext(QueryClientSharingContext)),
   )
 
   if (!queryClient) {
@@ -49,9 +56,8 @@ export const useQueryClient = ({ context }: ContextOptions = {}) => {
   return queryClient
 }
 
-type QueryClientProviderPropsBase = {
+type QueryClientProviderPropsBase = ParentProps & {
   client: QueryClient
-  children?: React.ReactNode
 }
 type QueryClientProviderPropsWithContext = ContextOptions & {
   contextSharing?: never
@@ -70,13 +76,13 @@ export const QueryClientProvider = ({
   children,
   context,
   contextSharing = false,
-}: QueryClientProviderProps): JSX.Element => {
-  React.useEffect(() => {
+}: QueryClientProviderProps) => {
+  onMount(() => client.mount())
+  onCleanup(() => client.unmount())
+  createComputed(() => {
     client.mount()
-    return () => {
-      client.unmount()
-    }
-  }, [client])
+    onCleanup(() => client.unmount())
+  })
 
   const Context = getQueryClientContext(context, contextSharing)
 
