@@ -1,15 +1,24 @@
 import {
+  DefaultedQueryObserverOptions,
   notifyManager,
   QueryKey,
   QueryObserver,
-  QueryObserverResult,
+  QueryObserverResult
 } from '@tanstack/query-core'
-import { createEffect, createResource, onCleanup } from 'solid-js'
+import {
+  Accessor,
+  createComputed,
+  createEffect,
+  createResource,
+  createSignal,
+  onCleanup
+} from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { useIsRestoring } from './isRestoring'
 import { useQueryClient } from './QueryClientProvider'
 import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
 import { UseBaseQueryOptions } from './types'
+import { shouldThrowError } from './utils'
 
 /**
  * Design of the base query.
@@ -43,48 +52,16 @@ export function useBaseQuery<
   Observer: typeof QueryObserver,
 ) {
   const queryClient = useQueryClient({ context: options.context })
-  const isRestoring = useIsRestoring()
   const errorResetBoundary = useQueryErrorResetBoundary()
-  const defaultedOptions = queryClient.defaultQueryOptions(options)
 
-  // Make sure results are optimistically set in fetching state before subscribing or updating options
-  defaultedOptions._optimisticResults = isRestoring
-    ? 'isRestoring'
-    : 'optimistic'
 
-  // Include callbacks in batch renders
-  if (defaultedOptions.onError) {
-    defaultedOptions.onError = notifyManager.batchCalls(
-      defaultedOptions.onError,
-    )
-  }
-
-  if (defaultedOptions.onSuccess) {
-    defaultedOptions.onSuccess = notifyManager.batchCalls(
-      defaultedOptions.onSuccess,
-    )
-  }
-
-  if (defaultedOptions.onSettled) {
-    defaultedOptions.onSettled = notifyManager.batchCalls(
-      defaultedOptions.onSettled,
-    )
-  }
-
-  if (defaultedOptions.suspense) {
-    // Always set stale time when using suspense to prevent
-    // fetching again when directly mounting after suspending
-    if (typeof defaultedOptions.staleTime !== 'number') {
-      defaultedOptions.staleTime = 1000
-    }
-  }
-
-  if (defaultedOptions.suspense || defaultedOptions.useErrorBoundary) {
-    // Prevent retrying failed query if the error boundary has not been reset yet
-    if (!errorResetBoundary.isReset()) {
-      defaultedOptions.retryOnMount = false
-    }
-  }
+  const defaultedOptions = useDefaultedOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData,
+    TQueryKey
+  >(options)
 
   const observer = new Observer<
     TQueryFnData,
@@ -92,23 +69,32 @@ export function useBaseQuery<
     TData,
     TQueryData,
     TQueryKey
-  >(queryClient, defaultedOptions)
+  >(queryClient, defaultedOptions())
 
   // use a store for the result, and set its initial value to an optimistic result.
   const [result, setResult] = createStore<QueryObserverResult<TData, TError>>(
-    observer.getOptimisticResult(defaultedOptions),
+    observer.getOptimisticResult(defaultedOptions()),
   )
 
   // dummy resource wrapper around the observer state.
   // must be refetched when the state changes.
   const [dataResource, { refetch }] = createResource(() => {
     return new Promise((resolve, reject) => {
-      // if the query is done, resolve it.
-      if (result.isSuccess) resolve(result.data)
-      // if the query is in an error state, reject it.
-      if (result.isError && !result.isFetching) {
+      // only throw errors if the error boundary has been set
+      if (
+        result.isError &&
+        !errorResetBoundary.isReset() &&
+        !result.isFetching &&
+        shouldThrowError(defaultedOptions().useErrorBoundary, [
+          result.error,
+          observer.getCurrentQuery(),
+        ])
+      ) {
         reject(result.error)
       }
+
+      // handle success
+      if (result.isSuccess) resolve(result.data)
     })
   })
 
@@ -123,20 +109,22 @@ export function useBaseQuery<
   // unsubscribe from observer changes on cleanup
   onCleanup(() => unsubscribe())
 
-  createEffect(() => {
-    errorResetBoundary.clearReset()
-  })
+  createEffect((prevReset) => {
+    const currReset = errorResetBoundary.isReset()
+    if (currReset !== prevReset) {
+      errorResetBoundary.clearReset()
+    }
+    return currReset
+  }, errorResetBoundary.isReset())
 
   createEffect(() => {
-    const newDefaultedOptions = queryClient.defaultQueryOptions(options)
     // Do not notify on updates because of changes in the options because
     // these changes should already be reflected in the optimistic result.
-    observer.setOptions(newDefaultedOptions, { listeners: false })
+    observer.setOptions(defaultedOptions(), { listeners: false })
   })
 
   // TODO(lukemurray): not sure how to handle this
   // Handle suspense
-
   // if (
   //   defaultedOptions.suspense &&
   //   result.isLoading &&
@@ -181,7 +169,104 @@ export function useBaseQuery<
   })
 
   // Handle result property usage tracking
-  return !defaultedOptions.notifyOnChangeProps
+  return !defaultedOptions().notifyOnChangeProps
     ? observer.trackResult(proxyResult)
     : proxyResult
+}
+
+/**
+ * Compute the default options for a query in a reactive scope.
+ */
+function useDefaultedOptions<
+  TQueryFnData,
+  TError,
+  TData,
+  TQueryData,
+  TQueryKey extends QueryKey,
+>(
+  options: UseBaseQueryOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData,
+    TQueryKey
+  >,
+) {
+  const queryClient = useQueryClient()
+  const isRestoring = useIsRestoring()
+  const errorResetBoundary = useQueryErrorResetBoundary()
+
+  const [defaultedOptions, setDefaultedOptions] =
+    createSignal<
+      DefaultedQueryObserverOptions<
+        TQueryFnData,
+        TError,
+        TData,
+        TQueryData,
+        TQueryKey
+      >
+    >()
+
+
+  // // TODO(lukemurray): There is a bug here where the defaulted options are not
+  // // updating reactively when the error reset boundary changes.
+  // // If they did we would be able to see this console log.
+  // createEffect(() => {
+  //   const isReset = errorResetBoundary.isReset();
+  //   console.log("reset changed", isReset);
+  // })
+
+  createComputed(() => {
+    const newDefaultedOptions = queryClient.defaultQueryOptions(options)
+    newDefaultedOptions._optimisticResults = isRestoring
+      ? 'isRestoring'
+      : 'optimistic'
+
+    // Include callbacks in batch renders
+    if (newDefaultedOptions.onError) {
+      newDefaultedOptions.onError = notifyManager.batchCalls(
+        newDefaultedOptions.onError,
+      )
+    }
+
+    if (newDefaultedOptions.onSuccess) {
+      newDefaultedOptions.onSuccess = notifyManager.batchCalls(
+        newDefaultedOptions.onSuccess,
+      )
+    }
+
+    if (newDefaultedOptions.onSettled) {
+      newDefaultedOptions.onSettled = notifyManager.batchCalls(
+        newDefaultedOptions.onSettled,
+      )
+    }
+
+    if (newDefaultedOptions.suspense) {
+      // Always set stale time when using suspense to prevent
+      // fetching again when directly mounting after suspending
+      if (typeof newDefaultedOptions.staleTime !== 'number') {
+        newDefaultedOptions.staleTime = 1000
+      }
+    }
+
+    const errorBoundaryIsReset = errorResetBoundary.isReset()
+    if (newDefaultedOptions.suspense || newDefaultedOptions.useErrorBoundary) {
+      // Prevent retrying failed query if the error boundary has not been reset yet
+      if (!errorBoundaryIsReset) {
+        newDefaultedOptions.retryOnMount = false
+      }
+    }
+
+    setDefaultedOptions(newDefaultedOptions)
+  })
+
+  return defaultedOptions as Accessor<
+    DefaultedQueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >
+  >
 }

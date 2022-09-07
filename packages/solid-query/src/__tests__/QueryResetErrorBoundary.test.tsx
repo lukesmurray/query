@@ -1,6 +1,7 @@
-import { ErrorBoundary } from 'react-error-boundary'
+import { createEffect, createSignal, ErrorBoundary } from 'solid-js'
 import { fireEvent, waitFor } from 'solid-testing-library'
 
+import { screen } from 'solid-testing-library'
 import { QueryCache, QueryErrorResetBoundary, useQuery } from '..'
 import { createQueryClient, queryKey, sleep } from '../../../../tests/utils'
 import { renderWithClient } from './utils'
@@ -16,13 +17,16 @@ describe('QueryErrorResetBoundary', () => {
   const queryCache = new QueryCache()
   const queryClient = createQueryClient({ queryCache })
 
+  // TODO(lukemurray): this test should pass but I can't get the useBaseQuery to
+  // update when the QueryErrorResetBoundary is reset. See relevant comment
+  // in useBaseQuery.ts
   it('should retry fetch if the reset error boundary has been reset', async () => {
     const key = queryKey()
 
     let succeed = false
 
     function Page() {
-      const { data } = useQuery(
+      const query = useQuery(
         key,
         async () => {
           await sleep(10)
@@ -37,21 +41,21 @@ describe('QueryErrorResetBoundary', () => {
           useErrorBoundary: true,
         },
       )
-      return <div>{data}</div>
+      return <div>{query.data}</div>
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
-        {({ reset }) => (
+        {({ reset: resetQuery }) => (
           <ErrorBoundary
-            onReset={reset}
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    resetQuery()
+                    resetSolid()
                   }}
                 >
                   retry
@@ -65,11 +69,11 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() => rendered.getByText('error boundary'))
-    await waitFor(() => rendered.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
+    await waitFor(() => screen.getByText('retry'))
     succeed = true
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('data'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('data'))
   })
 
   it('should not throw error if query is disabled', async () => {
@@ -78,7 +82,7 @@ describe('QueryErrorResetBoundary', () => {
     let succeed = false
 
     function Page() {
-      const { data, status } = useQuery(
+      const query = useQuery(
         key,
         async () => {
           await sleep(10)
@@ -96,24 +100,24 @@ describe('QueryErrorResetBoundary', () => {
       )
       return (
         <div>
-          <div>status: {status}</div>
-          <div>{data}</div>
+          <div>status: {query.status}</div>
+          <div>{query.data}</div>
         </div>
       )
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
-        {({ reset }) => (
+        {({ reset: resetQuery }) => (
           <ErrorBoundary
-            onReset={reset}
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    resetQuery()
+                    resetSolid()
                   }}
                 >
                   retry
@@ -127,11 +131,11 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() => rendered.getByText('error boundary'))
-    await waitFor(() => rendered.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
+    await waitFor(() => screen.getByText('retry'))
     succeed = true
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('status: error'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('status: error'))
   })
 
   it('should not throw error if query is disabled, and refetch if query becomes enabled again', async () => {
@@ -140,7 +144,7 @@ describe('QueryErrorResetBoundary', () => {
     let succeed = false
 
     function Page() {
-      const [enabled, setEnabled] = React.useState(false)
+      const [enabled, setEnabled] = createSignal(false)
       const { data } = useQuery(
         key,
         async () => {
@@ -153,30 +157,30 @@ describe('QueryErrorResetBoundary', () => {
         },
         {
           retry: false,
-          enabled,
+          enabled: enabled(),
           useErrorBoundary: true,
         },
       )
 
-      React.useEffect(() => {
+      createEffect(() => {
         setEnabled(true)
-      }, [])
+      })
 
       return <div>{data}</div>
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
-        {({ reset }) => (
+        {({ reset: resetQuery }) => (
           <ErrorBoundary
-            onReset={reset}
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    resetQuery()
+                    resetSolid()
                   }}
                 >
                   retry
@@ -190,11 +194,11 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() => rendered.getByText('error boundary'))
-    await waitFor(() => rendered.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
+    await waitFor(() => screen.getByText('retry'))
     succeed = true
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('data'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('data'))
   })
 
   it('should throw error if query is disabled and manually refetched', async () => {
@@ -224,18 +228,18 @@ describe('QueryErrorResetBoundary', () => {
       )
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
-        {({ reset }) => (
+        {({ reset: resetQuery }) => (
           <ErrorBoundary
-            onReset={reset}
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    resetQuery()
+                    resetSolid()
                   }}
                 >
                   retry
@@ -250,10 +254,10 @@ describe('QueryErrorResetBoundary', () => {
     )
 
     await waitFor(() =>
-      rendered.getByText('status: loading, fetchStatus: idle'),
+      screen.getByText('status: loading, fetchStatus: idle'),
     )
-    fireEvent.click(rendered.getByRole('button', { name: /refetch/i }))
-    await waitFor(() => rendered.getByText('error boundary'))
+    fireEvent.click(screen.getByRole('button', { name: /refetch/i }))
+    await waitFor(() => screen.getByText('error boundary'))
   })
 
   it('should not retry fetch if the reset error boundary has not been reset', async () => {
@@ -280,17 +284,17 @@ describe('QueryErrorResetBoundary', () => {
       return <div>{data}</div>
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
         {() => (
           <ErrorBoundary
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    resetSolid()
                   }}
                 >
                   retry
@@ -304,11 +308,11 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() => rendered.getByText('error boundary'))
-    await waitFor(() => rendered.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
+    await waitFor(() => screen.getByText('retry'))
     succeed = true
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('error boundary'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
   })
 
   it('should retry fetch if the reset error boundary has been reset and the query contains data from a previous fetch', async () => {
@@ -336,18 +340,18 @@ describe('QueryErrorResetBoundary', () => {
       return <div>{data}</div>
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
-        {({ reset }) => (
+        {({ reset: resetQuery }) => (
           <ErrorBoundary
-            onReset={reset}
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    resetQuery()
+                    resetSolid()
                   }}
                 >
                   retry
@@ -361,11 +365,11 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() => rendered.getByText('error boundary'))
-    await waitFor(() => rendered.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
+    await waitFor(() => screen.getByText('retry'))
     succeed = true
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('data'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('data'))
   })
 
   it('should not retry fetch if the reset error boundary has not been reset after a previous reset', async () => {
@@ -393,22 +397,20 @@ describe('QueryErrorResetBoundary', () => {
       return <div>{data}</div>
     }
 
-    const rendered = renderWithClient(
+    renderWithClient(
       queryClient,
       <QueryErrorResetBoundary>
-        {({ reset }) => (
+        {({ reset: resetQuery }) => (
           <ErrorBoundary
-            onReset={() => {
-              if (shouldReset) {
-                reset()
-              }
-            }}
-            fallbackRender={({ resetErrorBoundary }) => (
+            fallback={(err, resetSolid) => (
               <div>
                 <div>error boundary</div>
                 <button
                   onClick={() => {
-                    resetErrorBoundary()
+                    if (shouldReset) {
+                      resetQuery()
+                      resetSolid()
+                    }
                   }}
                 >
                   retry
@@ -422,15 +424,15 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() => rendered.getByText('error boundary'))
-    await waitFor(() => rendered.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
+    await waitFor(() => screen.getByText('retry'))
     shouldReset = true
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('error boundary'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
     succeed = true
     shouldReset = false
-    fireEvent.click(rendered.getByText('retry'))
-    await waitFor(() => rendered.getByText('error boundary'))
+    fireEvent.click(screen.getByText('retry'))
+    await waitFor(() => screen.getByText('error boundary'))
   })
 
   it('should throw again on error after the reset error boundary has been reset', async () => {

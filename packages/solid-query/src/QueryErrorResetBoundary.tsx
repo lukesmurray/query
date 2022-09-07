@@ -4,27 +4,29 @@ import { createContext, createSignal, useContext } from 'solid-js'
 import type { JSX } from 'solid-js/types/jsx'
 
 interface QueryErrorResetBoundaryValue {
-  clearReset: () => void
   isReset: () => boolean
+  clearReset: () => void
   reset: () => void
 }
 
 function createValue(): QueryErrorResetBoundaryValue {
-  const [isReset, setIsReset] = createSignal(false)
+  const [reset, setReset] = createSignal(false)
   return {
-    clearReset: () => {
-      setIsReset(false)
+    isReset() {
+      return reset()
     },
-    reset: () => {
-      setIsReset(true)
+    reset() {
+      setReset(true)
     },
-    isReset: () => {
-      return isReset()
+    clearReset() {
+      setReset(false)
     },
   }
 }
 
-const QueryErrorResetBoundaryContext = createContext(createValue())
+// undefined as any to fool TS into thinking this is always defined.
+const QueryErrorResetBoundaryContext =
+  createContext<QueryErrorResetBoundaryValue>(createValue())
 
 // HOOK
 
@@ -40,7 +42,8 @@ export interface QueryErrorResetBoundaryProps {
 export const QueryErrorResetBoundary = (
   props: QueryErrorResetBoundaryProps,
 ) => {
-  const value = createValue()
+  const value: QueryErrorResetBoundaryValue = createValue()
+
   return (
     <QueryErrorResetBoundaryContext.Provider value={value}>
       {typeof props.children === 'function'
@@ -49,3 +52,4 @@ export const QueryErrorResetBoundary = (
     </QueryErrorResetBoundaryContext.Provider>
   )
 }
+
