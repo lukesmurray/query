@@ -1,17 +1,17 @@
-import * as RQ from 'solid-query'
+import * as SQ from 'solid-query'
 
 export const Examples = () => {
-  RQ.useQuery(['todos'])
-  RQ.useInfiniteQuery(['todos'])
-  RQ.useMutation(['todos'])
-  RQ.useIsFetching(['todos'])
-  RQ.useIsMutating(['todos'])
-  RQ.useQueries({
+  SQ.useQuery(['todos'])
+  SQ.useInfiniteQuery(['todos'])
+  SQ.useMutation(['todos'])
+  SQ.useIsFetching(['todos'])
+  SQ.useIsMutating(['todos'])
+  SQ.useQueries({
     queries: [query1, query2]
   })
   // QueryClient methods
   // --- Instantiated hook call.
-  const queryClient = RQ.useQueryClient()
+  const queryClient = SQ.useQueryClient()
   queryClient.getMutationDefaults(['todos'])
   queryClient.getQueriesData(['todos'])
   queryClient.getQueryData(['todos'])
@@ -32,43 +32,43 @@ export const Examples = () => {
   queryClient.removeQueries(['todos'])
   queryClient.resetQueries(['todos'])
   // --- Direct hook call.
-  RQ.useQueryClient().getMutationDefaults(['todos'])
-  RQ.useQueryClient().getQueriesData(['todos'])
-  RQ.useQueryClient().getQueryData(['todos'])
-  RQ.useQueryClient().getQueryDefaults(['todos'])
-  RQ.useQueryClient().getQueryState(['todos'])
-  RQ.useQueryClient().isFetching(['todos'])
-  RQ.useQueryClient().setMutationDefaults(['todos'], {
+  SQ.useQueryClient().getMutationDefaults(['todos'])
+  SQ.useQueryClient().getQueriesData(['todos'])
+  SQ.useQueryClient().getQueryData(['todos'])
+  SQ.useQueryClient().getQueryDefaults(['todos'])
+  SQ.useQueryClient().getQueryState(['todos'])
+  SQ.useQueryClient().isFetching(['todos'])
+  SQ.useQueryClient().setMutationDefaults(['todos'], {
     mutationFn: async () => null,
   })
-  RQ.useQueryClient().setQueriesData(['todos'], () => null)
-  RQ.useQueryClient().setQueryData(['todos'], () => null)
-  RQ.useQueryClient().setQueryDefaults(['todos'], {
+  SQ.useQueryClient().setQueriesData(['todos'], () => null)
+  SQ.useQueryClient().setQueryData(['todos'], () => null)
+  SQ.useQueryClient().setQueryDefaults(['todos'], {
     queryFn: async () => null,
   })
-  RQ.useQueryClient().cancelQueries(['todos'])
-  RQ.useQueryClient().fetchInfiniteQuery(['todos'])
-  RQ.useQueryClient().fetchQuery(['todos'])
-  RQ.useQueryClient().invalidateQueries(['todos'])
-  RQ.useQueryClient().prefetchInfiniteQuery(['todos'])
-  RQ.useQueryClient().prefetchQuery(['todos'])
-  RQ.useQueryClient().refetchQueries(['todos'])
-  RQ.useQueryClient().removeQueries(['todos'])
-  RQ.useQueryClient().resetQueries(['todos'])
+  SQ.useQueryClient().cancelQueries(['todos'])
+  SQ.useQueryClient().fetchInfiniteQuery(['todos'])
+  SQ.useQueryClient().fetchQuery(['todos'])
+  SQ.useQueryClient().invalidateQueries(['todos'])
+  SQ.useQueryClient().prefetchInfiniteQuery(['todos'])
+  SQ.useQueryClient().prefetchQuery(['todos'])
+  SQ.useQueryClient().refetchQueries(['todos'])
+  SQ.useQueryClient().removeQueries(['todos'])
+  SQ.useQueryClient().resetQueries(['todos'])
   // QueryCache
   // --- NewExpression
-  const queryCache1 = new RQ.QueryCache({
+  const queryCache1 = new SQ.QueryCache({
     onError: (error) => console.log(error),
     onSuccess: (success) => console.log(success)
   })
   queryCache1.find(['todos'])
   queryCache1.findAll(['todos'])
   // --- Instantiated hook call.
-  const queryClient1 = RQ.useQueryClient()
+  const queryClient1 = SQ.useQueryClient()
   queryClient1.getQueryCache().find(['todos'])
   queryClient1.getQueryCache().findAll(['todos'])
   //
-  const queryClient2 = new RQ.QueryClient({})
+  const queryClient2 = new SQ.QueryClient({})
   queryClient2.getQueryCache().find(['todos'])
   queryClient2.getQueryCache().findAll(['todos'])
   //
@@ -76,10 +76,10 @@ export const Examples = () => {
   queryCache2.find(['todos'])
   queryCache2.findAll(['todos'])
   // --- Direct hook call.
-  RQ.useQueryClient().getQueryCache().find(['todos'])
-  RQ.useQueryClient().getQueryCache().findAll(['todos'])
+  SQ.useQueryClient().getQueryCache().find(['todos'])
+  SQ.useQueryClient().getQueryCache().findAll(['todos'])
   //
-  const queryCache3 = RQ.useQueryClient().getQueryCache()
+  const queryCache3 = SQ.useQueryClient().getQueryCache()
   queryCache3.find(['todos'])
   queryCache3.findAll(['todos'])
 

@@ -1,4 +1,4 @@
-// React Query
+// Solid Query
 import { useQuery, useQueryClient } from 'solid-query'
 import { useQuery as RenamedUseQuery, useQueryClient as RenamedUseQueryClient } from 'solid-query'
 import DefaultSolidQuery from 'solid-query'
