@@ -1,44 +1,52 @@
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  ParentProps,
+  Show,
+} from 'solid-js'
+import type { JSX } from 'solid-js/types/jsx'
 import { render } from 'solid-testing-library'
 import { ContextOptions, QueryClient, QueryClientProvider } from '..'
-import { setActTimeout } from '../../../../tests/utils'
 
 export function renderWithClient(
   client: QueryClient,
-  ui: React.ReactElement,
+  ui: JSX.Element,
   options: ContextOptions = {},
 ): ReturnType<typeof render> {
-  const { rerender, ...result } = render(
+  const { rerender, ...result } = render(() => (
     <QueryClientProvider client={client} context={options.context}>
       {ui}
-    </QueryClientProvider>,
-  )
+    </QueryClientProvider>
+  ))
   return {
     ...result,
-    rerender: (rerenderUi: React.ReactElement) =>
-      rerender(
+    rerender: (rerenderUi: JSX.Element) =>
+      // TODO(lukemurray): this doesn't exist in solid-testing-library
+      rerender!(() => (
         <QueryClientProvider client={client} context={options.context}>
           {rerenderUi}
-        </QueryClientProvider>,
-      ),
+        </QueryClientProvider>
+      )),
   } as any
 }
 
-export const Blink = ({
-  duration,
-  children,
-}: {
-  duration: number
-  children: React.ReactNode
-}) => {
-  const [shouldShow, setShouldShow] = React.useState<boolean>(true)
+export const Blink = (
+  props: ParentProps & {
+    duration: number
+  },
+) => {
+  const [shouldShow, setShouldShow] = createSignal<boolean>(true)
 
-  React.useEffect(() => {
+  createEffect(() => {
     setShouldShow(true)
-    const timeout = setActTimeout(() => setShouldShow(false), duration)
-    return () => {
-      clearTimeout(timeout)
-    }
-  }, [duration, children])
+    const timeout = setTimeout(() => setShouldShow(false), props.duration)
+    onCleanup(() => clearTimeout(timeout))
+  })
 
-  return shouldShow ? <>{children}</> : <>off</>
+  return (
+    <Show when={shouldShow} fallback={<>off</>}>
+      {props.children}
+    </Show>
+  )
 }
