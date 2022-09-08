@@ -19,6 +19,8 @@ export interface ContextOptions {
   context?: Context<QueryClient | undefined>
 }
 
+export type SolidQueryKey = () => readonly unknown[]
+
 export interface UseBaseQueryOptions<
   TQueryFnData = unknown,
   TError = unknown,
@@ -32,13 +34,13 @@ export interface UseQueryOptions<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 > extends UseBaseQueryOptions<
     TQueryFnData,
     TError,
     TData,
     TQueryFnData,
-    TQueryKey
+    ReturnType<TQueryKey>
   > {}
 
 export interface UseInfiniteQueryOptions<

@@ -253,9 +253,7 @@ describe('QueryErrorResetBoundary', () => {
       </QueryErrorResetBoundary>,
     )
 
-    await waitFor(() =>
-      screen.getByText('status: loading, fetchStatus: idle'),
-    )
+    await waitFor(() => screen.getByText('status: loading, fetchStatus: idle'))
     fireEvent.click(screen.getByRole('button', { name: /refetch/i }))
     await waitFor(() => screen.getByText('error boundary'))
   })

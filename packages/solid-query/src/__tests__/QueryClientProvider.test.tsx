@@ -1,6 +1,8 @@
 import { Context, createContext, useContext } from 'solid-js'
 import { render, screen, waitFor } from 'solid-testing-library'
+import { queryKey } from './utils'
 
+import { renderToString } from 'solid-js/web'
 import {
   QueryCache,
   QueryClient,
@@ -8,7 +10,7 @@ import {
   useQuery,
   useQueryClient,
 } from '..'
-import { createQueryClient, queryKey, sleep } from '../../../../tests/utils'
+import { createQueryClient, sleep } from '../../../../tests/utils'
 
 describe('QueryClientProvider', () => {
   test('sets a specific cache for all queries to use', async () => {
@@ -40,7 +42,7 @@ describe('QueryClientProvider', () => {
       return screen.getByText('test')
     })
 
-    expect(queryCache.find(key)).toBeDefined()
+    expect(queryCache.find(key())).toBeDefined()
   })
 
   test('allows multiple caches to be partitioned', async () => {
@@ -92,10 +94,10 @@ describe('QueryClientProvider', () => {
     await waitFor(() => screen.getByText('test1'))
     await waitFor(() => screen.getByText('test2'))
 
-    expect(queryCache1.find(key1)).toBeDefined()
-    expect(queryCache1.find(key2)).not.toBeDefined()
-    expect(queryCache2.find(key1)).not.toBeDefined()
-    expect(queryCache2.find(key2)).toBeDefined()
+    expect(queryCache1.find(key1())).toBeDefined()
+    expect(queryCache1.find(key2())).not.toBeDefined()
+    expect(queryCache2.find(key1())).not.toBeDefined()
+    expect(queryCache2.find(key2())).toBeDefined()
   })
 
   test("uses defaultOptions for queries when they don't provide their own config", async () => {
@@ -132,8 +134,8 @@ describe('QueryClientProvider', () => {
 
     await waitFor(() => screen.getByText('test'))
 
-    expect(queryCache.find(key)).toBeDefined()
-    expect(queryCache.find(key)?.options.cacheTime).toBe(Infinity)
+    expect(queryCache.find(key())).toBeDefined()
+    expect(queryCache.find(key())?.options.cacheTime).toBe(Infinity)
   })
 
   describe('with custom context', () => {
@@ -237,32 +239,31 @@ describe('QueryClientProvider', () => {
       expect(queryClientFromWindow).toEqual(queryClient)
     })
 
-    // TODO(lukemurray): implement server side tests
-    // test('should not use window to get the context when contextSharing is true and window does not exist', () => {
-    //   const queryCache = new QueryCache()
-    //   const queryClient = createQueryClient({ queryCache })
+    test('should not use window to get the context when contextSharing is true and window does not exist', () => {
+      const queryCache = new QueryCache()
+      const queryClient = createQueryClient({ queryCache })
 
-    //   // Mock a non web browser environment
-    //   const windowSpy = jest
-    //     .spyOn(window, 'window', 'get')
-    //     .mockImplementation(undefined)
+      // Mock a non web browser environment
+      const windowSpy = jest
+        .spyOn(window, 'window', 'get')
+        .mockImplementation(undefined)
 
-    //   let queryClientFromHook: QueryClient | undefined
+      let queryClientFromHook: QueryClient | undefined
 
-    //   function Page() {
-    //     queryClientFromHook = useQueryClient()
-    //     return null
-    //   }
+      function Page() {
+        queryClientFromHook = useQueryClient()
+        return null
+      }
 
-    //   renderToString(
-    //     <QueryClientProvider client={queryClient} contextSharing={true}>
-    //       <Page />
-    //     </QueryClientProvider>,
-    //   )
+      renderToString(() => (
+        <QueryClientProvider client={queryClient} contextSharing={true}>
+          <Page />
+        </QueryClientProvider>
+      ))
 
-    //   expect(queryClientFromHook).toEqual(queryClient)
+      expect(queryClientFromHook).toEqual(queryClient)
 
-    //   windowSpy.mockRestore()
-    // })
+      windowSpy.mockRestore()
+    })
   })
 })

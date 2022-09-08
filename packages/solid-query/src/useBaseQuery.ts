@@ -3,22 +3,21 @@ import {
   notifyManager,
   QueryKey,
   QueryObserver,
-  QueryObserverResult
+  QueryObserverResult,
 } from '@tanstack/query-core'
 import {
   Accessor,
   createComputed,
-  createEffect,
   createResource,
   createSignal,
-  onCleanup
+  onCleanup,
+  onMount,
 } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { useIsRestoring } from './isRestoring'
 import { useQueryClient } from './QueryClientProvider'
 import { useQueryErrorResetBoundary } from './QueryErrorResetBoundary'
 import { UseBaseQueryOptions } from './types'
-import { shouldThrowError } from './utils'
 
 /**
  * Design of the base query.
@@ -54,7 +53,6 @@ export function useBaseQuery<
   const queryClient = useQueryClient({ context: options.context })
   const errorResetBoundary = useQueryErrorResetBoundary()
 
-
   const defaultedOptions = useDefaultedOptions<
     TQueryFnData,
     TError,
@@ -80,21 +78,12 @@ export function useBaseQuery<
   // must be refetched when the state changes.
   const [dataResource, { refetch }] = createResource(() => {
     return new Promise((resolve, reject) => {
-      // only throw errors if the error boundary has been set
-      if (
-        result.isError &&
-        !errorResetBoundary.isReset() &&
-        !result.isFetching &&
-        shouldThrowError(defaultedOptions().useErrorBoundary, [
-          result.error,
-          observer.getCurrentQuery(),
-        ])
-      ) {
-        reject(result.error)
+      if (result.isSuccess) {
+        resolve(result.data)
       }
-
-      // handle success
-      if (result.isSuccess) resolve(result.data)
+      if (result.isError && !result.isFetching) {
+        throw result.error
+      }
     })
   })
 
@@ -109,18 +98,12 @@ export function useBaseQuery<
   // unsubscribe from observer changes on cleanup
   onCleanup(() => unsubscribe())
 
-  createEffect((prevReset) => {
-    const currReset = errorResetBoundary.isReset()
-    if (currReset !== prevReset) {
-      errorResetBoundary.clearReset()
-    }
-    return currReset
-  }, errorResetBoundary.isReset())
-
-  createEffect(() => {
-    // Do not notify on updates because of changes in the options because
-    // these changes should already be reflected in the optimistic result.
+  onMount(() => {
     observer.setOptions(defaultedOptions(), { listeners: false })
+  })
+
+  createComputed(() => {
+    observer.setOptions(defaultedOptions())
   })
 
   // TODO(lukemurray): not sure how to handle this
@@ -168,10 +151,12 @@ export function useBaseQuery<
     },
   })
 
-  // Handle result property usage tracking
-  return !defaultedOptions().notifyOnChangeProps
-    ? observer.trackResult(proxyResult)
-    : proxyResult
+  // TODO(lukemurray): not sure if it is safe to use this.
+  // // Handle result property usage tracking
+  // return !defaultedOptions().notifyOnChangeProps
+  //   ? observer.trackResult(proxyResult)
+  //   : proxyResult
+  return proxyResult
 }
 
 /**
@@ -206,7 +191,6 @@ function useDefaultedOptions<
         TQueryKey
       >
     >()
-
 
   // // TODO(lukemurray): There is a bug here where the defaulted options are not
   // // updating reactively when the error reset boundary changes.

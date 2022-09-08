@@ -1,11 +1,12 @@
+import { QueryFunction, QueryObserver } from '@tanstack/query-core'
 import {
-  parseQueryArgs,
-  QueryFunction,
-  QueryKey,
-  QueryObserver,
-} from '@tanstack/query-core'
-import { DefinedUseQueryResult, UseQueryOptions, UseQueryResult } from './types'
+  DefinedUseQueryResult,
+  SolidQueryKey,
+  UseQueryOptions,
+  UseQueryResult,
+} from './types'
 import { useBaseQuery } from './useBaseQuery'
+import { parseQueryArgs } from './utils'
 
 // HOOK
 
@@ -13,7 +14,7 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   options: Omit<
     UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
@@ -25,7 +26,7 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   options: Omit<
     UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
@@ -37,7 +38,7 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   options: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
 ): UseQueryResult<TData, TError>
@@ -46,7 +47,7 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   queryKey: TQueryKey,
   options?: Omit<
@@ -59,7 +60,7 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   queryKey: TQueryKey,
   options?: Omit<
@@ -72,7 +73,7 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   queryKey: TQueryKey,
   options?: Omit<
@@ -85,10 +86,10 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   queryKey: TQueryKey,
-  queryFn: QueryFunction<TQueryFnData, TQueryKey>,
+  queryFn: QueryFunction<TQueryFnData, ReturnType<TQueryKey>>,
   options?: Omit<
     UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     'queryKey' | 'queryFn' | 'initialData'
@@ -99,10 +100,10 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   queryKey: TQueryKey,
-  queryFn: QueryFunction<TQueryFnData, TQueryKey>,
+  queryFn: QueryFunction<TQueryFnData, ReturnType<TQueryKey>>,
   options?: Omit<
     UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     'queryKey' | 'queryFn' | 'initialData'
@@ -113,10 +114,10 @@ export function useQuery<
   TQueryFnData = unknown,
   TError = unknown,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   queryKey: TQueryKey,
-  queryFn: QueryFunction<TQueryFnData, TQueryKey>,
+  queryFn: QueryFunction<TQueryFnData, ReturnType<TQueryKey>>,
   options?: Omit<
     UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     'queryKey' | 'queryFn'
@@ -127,11 +128,11 @@ export function useQuery<
   TQueryFnData,
   TError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends SolidQueryKey = SolidQueryKey,
 >(
   arg1: TQueryKey | UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
   arg2?:
-    | QueryFunction<TQueryFnData, TQueryKey>
+    | QueryFunction<TQueryFnData, ReturnType<TQueryKey>>
     | UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
   arg3?: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
 ): UseQueryResult<TData, TError> {

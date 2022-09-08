@@ -9,7 +9,7 @@ import {
   QueryFunctionContext,
   useQuery,
   UseQueryOptions,
-  UseQueryResult
+  UseQueryResult,
 } from '..'
 import {
   createQueryClient,
@@ -19,7 +19,7 @@ import {
   mockVisibilityState,
   queryKey,
   setActTimeout,
-  sleep
+  sleep,
 } from '../../../../tests/utils'
 import { Blink, renderWithClient } from './utils'
 
@@ -173,7 +173,7 @@ describe('useQuery', () => {
     const key = queryKey()
 
     function Page() {
-      const query  = useQuery(key, async () => {
+      const query = useQuery(key, async () => {
         await sleep(10)
         return 'test'
       })
@@ -221,9 +221,9 @@ describe('useQuery', () => {
       return <span>{state.data}</span>
     }
 
-    const rendered = renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => screen.getByText('test'))
 
     expect(states.length).toEqual(2)
 

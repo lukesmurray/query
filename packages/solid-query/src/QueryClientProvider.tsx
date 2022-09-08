@@ -2,9 +2,9 @@ import { QueryClient } from '@tanstack/query-core'
 import {
   Context as SolidContext,
   createContext,
-  createEffect,
   mergeProps,
   onCleanup,
+  onMount,
   ParentProps,
   useContext,
 } from 'solid-js'
@@ -74,10 +74,8 @@ export type QueryClientProviderProps =
 export const QueryClientProvider = (props: QueryClientProviderProps) => {
   const mergedProps = mergeProps({ contextSharing: false }, props)
 
-  createEffect(() => {
-    mergedProps.client.mount()
-    onCleanup(() => mergedProps.client.unmount())
-  })
+  onMount(() => mergedProps.client.mount())
+  onCleanup(() => mergedProps.client.unmount())
 
   const Context = getQueryClientContext(
     mergedProps.context,
