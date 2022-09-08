@@ -8,7 +8,7 @@ import {
   QueryClient,
   QueryClientProvider,
   useQuery,
-  useQueryClient
+  useQueryClient,
 } from '..'
 import { createQueryClient, sleep } from '../../../../tests/utils'
 

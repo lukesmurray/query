@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom'
 
 import { ErrorBoundary } from 'react-error-boundary'
+import { createEffect, createSignal, Match, Show, Switch } from 'solid-js'
 import { fireEvent, screen, waitFor } from 'solid-testing-library'
 import {
   DefinedUseQueryResult,
@@ -17,11 +18,10 @@ import {
   mockLogger,
   mockNavigatorOnLine,
   mockVisibilityState,
-  queryKey,
   setActTimeout,
   sleep,
 } from '../../../../tests/utils'
-import { Blink, renderWithClient } from './utils'
+import { Blink, queryKey, renderWithClient } from './utils'
 
 describe('useQuery', () => {
   const queryCache = new QueryCache()
@@ -54,10 +54,14 @@ describe('useQuery', () => {
       expectType<Error | null>(withError.error)
 
       // it should provide the result type in the configuration
-      useQuery([key], async () => true, {
-        onSuccess: (data) => expectType<boolean>(data),
-        onSettled: (data) => expectType<boolean | undefined>(data),
-      })
+      useQuery(
+        () => [key],
+        async () => true,
+        {
+          onSuccess: (data) => expectType<boolean>(data),
+          onSettled: (data) => expectType<boolean | undefined>(data),
+        },
+      )
 
       // it should be possible to specify a union type as result type
       const unionTypeSync = useQuery(
@@ -91,7 +95,7 @@ describe('useQuery', () => {
       expectType<unknown>(fromGenericQueryFn.error)
 
       const fromGenericOptionsQueryFn = useQuery({
-        queryKey: key,
+        queryKey: key(),
         queryFn: () => queryFn(),
       })
       expectType<string | undefined>(fromGenericOptionsQueryFn.data)
@@ -207,18 +211,24 @@ describe('useQuery', () => {
       if (state.isLoading) {
         expectType<undefined>(state.data)
         expectType<null>(state.error)
-        return <span>loading</span>
-      }
-
-      if (state.isLoadingError) {
+      } else if (state.isLoadingError) {
         expectType<undefined>(state.data)
         expectType<Error>(state.error)
-        return <span>{state.error.message}</span>
+      } else {
+        expectType<string>(state.data)
+        expectType<Error | null>(state.error)
       }
 
-      expectType<string>(state.data)
-      expectType<Error | null>(state.error)
-      return <span>{state.data}</span>
+      return (
+        <Switch fallback={<span>{state.data}</span>}>
+          <Match when={state.isLoading}>
+            <span>loading</span>
+          </Match>
+          <Match when={state.isLoadingError}>
+            <span>{state.error!.message}</span>
+          </Match>
+        </Switch>
+      )
     }
 
     renderWithClient(queryClient, () => <Page />)
@@ -305,9 +315,9 @@ describe('useQuery', () => {
       )
     }
 
-    const rendered = renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
-    await waitFor(() => rendered.getByText('Status: error'))
+    await waitFor(() => screen.getByText('Status: error'))
 
     expect(states[0]).toEqual({
       data: undefined,
@@ -392,7 +402,7 @@ describe('useQuery', () => {
     const key = queryKey()
     const states: UseQueryResult<string>[] = []
 
-    await queryClient.prefetchQuery(key, () => 'prefetched')
+    await queryClient.prefetchQuery(key(), () => 'prefetched')
 
     function Page() {
       const state = useQuery(key, () => 'data')
@@ -400,7 +410,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(10)
     expect(states.length).toBe(2)
@@ -435,9 +445,9 @@ describe('useQuery', () => {
       return <div>data: {state.data}</div>
     }
 
-    const rendered = renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
-    await rendered.findByText('data: data')
+    await screen.findByText('data: data')
     expect(states.length).toBe(2)
     expect(onSuccess).toHaveBeenCalledTimes(1)
     expect(onSuccess).toHaveBeenCalledWith('data')
@@ -470,11 +480,11 @@ describe('useQuery', () => {
       )
     }
 
-    const rendered = renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
-    await rendered.findByText('data: data1')
-    fireEvent.click(rendered.getByRole('button', { name: /refetch/i }))
-    await rendered.findByText('data: data2')
+    await screen.findByText('data: data1')
+    fireEvent.click(screen.getByRole('button', { name: /refetch/i }))
+    await screen.findByText('data: data2')
 
     expect(states.length).toBe(3) //loading, success, success after refetch
     expect(count).toBe(2)
@@ -493,8 +503,8 @@ describe('useQuery', () => {
 
       const { refetch } = state
 
-      React.useEffect(() => {
-        setActTimeout(() => {
+      createEffect(() => {
+        setTimeout(() => {
           refetch()
         }, 10)
       }, [refetch])
@@ -502,7 +512,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(50)
     expect(onSuccess).toHaveBeenCalledTimes(1)
@@ -515,13 +525,17 @@ describe('useQuery', () => {
     const onSuccess = jest.fn()
 
     function Page() {
-      const [show, setShow] = React.useState(true)
+      const [show, setShow] = createSignal(true)
 
-      React.useEffect(() => {
+      createEffect(() => {
         setShow(false)
       }, [setShow])
 
-      return show ? <Component /> : null
+      return (
+        <Show when={show()} fallback={null}>
+          <Component />
+        </Show>
+      )
     }
 
     function Component() {
@@ -537,7 +551,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(50)
     expect(states.length).toBe(1)
@@ -558,7 +572,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(10)
     expect(states.length).toBe(2)
@@ -588,14 +602,12 @@ describe('useQuery', () => {
       )
     }
 
-    const rendered = renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(5)
-    await queryClient.cancelQueries(key)
+    await queryClient.cancelQueries(key())
     // query cancellation will reset the query to it's initial state
-    await waitFor(() =>
-      rendered.getByText('status: loading, fetchStatus: idle'),
-    )
+    await waitFor(() => screen.getByText('status: loading, fetchStatus: idle'))
     expect(onError).not.toHaveBeenCalled()
   })
 
@@ -610,7 +622,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(10)
     expect(states.length).toBe(2)
@@ -632,7 +644,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(10)
     expect(states.length).toBe(2)
@@ -655,11 +667,11 @@ describe('useQuery', () => {
         { enabled: false, initialData: 'initialData' },
       )
 
-      React.useEffect(() => {
-        setActTimeout(() => {
+      createEffect(() => {
+        setTimeout(() => {
           refetch()
         }, 5)
-        setActTimeout(() => {
+        setTimeout(() => {
           refetch({ cancelRefetch: false })
         }, 5)
       }, [refetch])
@@ -667,7 +679,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(20)
     // first refetch only, second refetch is ignored
@@ -689,11 +701,11 @@ describe('useQuery', () => {
         { enabled: false, initialData: 'initialData' },
       )
 
-      React.useEffect(() => {
-        setActTimeout(() => {
+      createEffect(() => {
+        setTimeout(() => {
           refetch()
         }, 5)
-        setActTimeout(() => {
+        setTimeout(() => {
           refetch()
         }, 5)
       }, [refetch])
@@ -701,7 +713,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(20)
     // first refetch (gets cancelled) and second refetch
@@ -723,11 +735,11 @@ describe('useQuery', () => {
         { enabled: false },
       )
 
-      React.useEffect(() => {
-        setActTimeout(() => {
+      createEffect(() => {
+        setTimeout(() => {
           refetch()
         }, 5)
-        setActTimeout(() => {
+        setTimeout(() => {
           refetch()
         }, 5)
       }, [refetch])
@@ -735,7 +747,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(20)
     // first refetch will not get cancelled, second one gets skipped
@@ -746,7 +758,7 @@ describe('useQuery', () => {
     const key = queryKey()
     const states: UseQueryResult<string>[] = []
 
-    queryClient.setQueryDefaults(key, { queryFn: () => 'data' })
+    queryClient.setQueryDefaults(key(), { queryFn: () => 'data' })
 
     function Page() {
       const state = useQuery<string>(key)
@@ -754,7 +766,7 @@ describe('useQuery', () => {
       return null
     }
 
-    renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
     await sleep(10)
 
