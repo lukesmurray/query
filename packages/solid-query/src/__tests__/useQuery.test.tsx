@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom'
 
 import { ErrorBoundary } from 'react-error-boundary'
-import { act, fireEvent, waitFor } from 'solid-testing-library'
+import { fireEvent, screen, waitFor } from 'solid-testing-library'
 import {
   DefinedUseQueryResult,
   QueryCache,
@@ -9,7 +9,7 @@ import {
   QueryFunctionContext,
   useQuery,
   UseQueryOptions,
-  UseQueryResult,
+  UseQueryResult
 } from '..'
 import {
   createQueryClient,
@@ -19,7 +19,7 @@ import {
   mockVisibilityState,
   queryKey,
   setActTimeout,
-  sleep,
+  sleep
 } from '../../../../tests/utils'
 import { Blink, renderWithClient } from './utils'
 
@@ -173,23 +173,23 @@ describe('useQuery', () => {
     const key = queryKey()
 
     function Page() {
-      const { data = 'default' } = useQuery(key, async () => {
+      const query  = useQuery(key, async () => {
         await sleep(10)
         return 'test'
       })
 
       return (
         <div>
-          <h1>{data}</h1>
+          <h1>{query.data ?? 'default'}</h1>
         </div>
       )
     }
 
-    const rendered = renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, () => <Page />)
 
-    rendered.getByText('default')
+    screen.getByText('default')
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => screen.getByText('test'))
   })
 
   it('should return the correct states for a successful query', async () => {
