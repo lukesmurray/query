@@ -8,7 +8,7 @@ import {
   QueryClient,
   QueryClientProvider,
   useQuery,
-  useQueryClient,
+  useQueryClient
 } from '..'
 import { createQueryClient, sleep } from '../../../../tests/utils'
 
@@ -255,6 +255,8 @@ describe('QueryClientProvider', () => {
         return null
       }
 
+      // TODO(lukemurray): this test doesn't pass because the page function is
+      // never called. I'm not sure why.
       renderToString(() => (
         <QueryClientProvider client={queryClient} contextSharing={true}>
           <Page />
